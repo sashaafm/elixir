@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Profile.Cprof do
   use Mix.Task
 
-  @shortdoc ""
+  @shortdoc "Profiles the given file or expression with cprof"
 
   @moduledoc """
   """
