@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Profile.Cprof do
   @moduledoc """
   """
 
-  @switches [parallel: :boolean, require: :keep, eval: :keep, config: :keep,
+  @switches [parallel: :boolean, require: :keep, eval: :keep, config: :keep, func_spec: :string,
              halt: :boolean, compile: :boolean, deps_check: :boolean, limit: :integer, 
              module: :string, trace_pattern: :string, start: :boolean, archives_check: :boolean, 
              warmup: :boolean, elixir_version_check: :boolean, parallel_require: :keep]
@@ -121,9 +121,18 @@ defmodule Mix.Tasks.Profile.Cprof do
       fun.()
     end
 
-    num_matched_functions = case Keyword.get(opts, :trace_pattern) do
-      nil -> :cprof.start()
-      pattern -> pattern |> parse_pattern |> :cprof.start
+    num_matched_functions = case Keyword.get(opts, :func_spec) do
+      nil ->
+        case Keyword.get(opts, :trace_pattern) do
+          nil -> :cprof.start()
+          pattern -> pattern |> parse_pattern |> :cprof.start
+        end
+      func_spec -> # --trace-pattern is ignored if --func-spec present
+        case(parse_func_spec(func_spec)) do
+          module when not is_tuple(module) -> :cprof.start(module)
+          {module, function} -> :cprof.start(module, function)
+          {module, function, arity} -> :cprof.start(module, function, arity)
+        end
     end
 
     apply(fun, [])
@@ -148,7 +157,7 @@ defmodule Mix.Tasks.Profile.Cprof do
   end
 
   defp string_to_existing_module_atom(":" <> module), do: String.to_existing_atom(module)
-  defp string_to_existing_module_atom(module), do: [module] |> Module.concat
+  defp string_to_existing_module_atom(module), do: Module.concat([module])
 
   defp is_elixir_module(module) when is_atom(module), do: function_exported?(module, :__info__, 1)
  
@@ -162,6 +171,15 @@ defmodule Mix.Tasks.Profile.Cprof do
       ":" <> module_name
     end
   end
+
+  defp parse_func_spec(func_spec), do: func_spec |> Code.string_to_quoted! |> do_parse_func_spec
+
+  defp do_parse_func_spec({_, _, [{_, _, [m]}, :'_', :'_']}), do: m
+  defp do_parse_func_spec({_, _, [{_, _, [m]}, f, :'_']}), do: {m, f}
+  defp do_parse_func_spec({_, _, [{_, _, [m]}, f, a]}), do: {m, f, a}
+  defp do_parse_func_spec({_, _, [m, :'_', :'_']}), do: m
+  defp do_parse_func_spec({_, _, [m, f, :'_']}), do: {m, f}
+  defp do_parse_func_spec({_, _, [m, f, a]}), do: {m, f, a}
 
   defp parse_pattern("on_load"), do: :on_load
   defp parse_pattern(pattern), do: pattern |> Code.string_to_quoted! |> do_parse_pattern
