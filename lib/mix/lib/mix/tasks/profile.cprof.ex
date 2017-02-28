@@ -136,11 +136,31 @@ defmodule Mix.Tasks.Profile.Cprof do
     analysis_result = case {limit, module} do
       {nil, nil} -> :cprof.analyse()
       {limit, nil} -> :cprof.analyse(limit)
-      {nil, module} -> [module] |> Module.concat |> :cprof.analyse
-      {limit, module} -> [module] |> Module.concat |> :cprof.analyse(limit)
+      {limit, module} -> 
+        module_atom = string_to_existing_module_atom(module)
+        case limit do
+          nil -> :cprof.analyse(module_atom)
+          _   -> :cprof.analyse(module_atom, limit)
+        end
     end
 
     {num_matched_functions, analysis_result}
+  end
+
+  defp string_to_existing_module_atom(":" <> module), do: String.to_existing_atom(module)
+  defp string_to_existing_module_atom(module), do: [module] |> Module.concat
+
+  defp is_elixir_module(module) when is_atom(module), do: function_exported?(module, :__info__, 1)
+ 
+  defp module_name_for_printing(module) do
+    module_name = Atom.to_string(module)
+
+    if is_elixir_module(module) do
+      "Elixir." <> rem = module_name
+      rem
+    else
+      ":" <> module_name
+    end
   end
 
   defp parse_pattern("on_load"), do: :on_load
@@ -173,7 +193,7 @@ defmodule Mix.Tasks.Profile.Cprof do
   end
 
   defp print_analysis_result({module, total_module_count, module_fun_list}) do
-    module = parsed_module_name(module)
+    module = module_name_for_printing(module)
     print_module(module, total_module_count, "", "<--")
     Enum.each(module_fun_list, &print_function(&1, "  "))
   end
@@ -183,19 +203,6 @@ defmodule Mix.Tasks.Profile.Cprof do
       ["s", "B", "s"],
       ["#{prefix}#{module}", count, suffix]
     )
-  end
-
-  defp is_elixir_module(module) when is_atom(module), do: function_exported?(module, :__info__, 1)
- 
-  defp parsed_module_name(module) do
-    module_name = Atom.to_string(module)
-
-    if is_elixir_module(module) do
-      "Elixir." <> rem = module_name
-      rem
-    else
-      ":" <> module_name
-    end
   end
 
   defp print_function({fun, count}, prefix \\ "", suffix \\ "") do
