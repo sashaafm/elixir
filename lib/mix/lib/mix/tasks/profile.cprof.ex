@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Profile.Cprof do
   @switches [parallel: :boolean, require: :keep, eval: :keep, config: :keep,
              halt: :boolean, compile: :boolean, deps_check: :boolean, limit: :integer, 
              module: :string, trace_pattern: :string, start: :boolean, archives_check: :boolean, 
-             elixir_version_check: :boolean, parallel_require: :keep]
+             warmup: :boolean, elixir_version_check: :boolean, parallel_require: :keep]
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
