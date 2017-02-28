@@ -184,14 +184,13 @@ defmodule Mix.Tasks.Profile.Cprof do
       ["#{prefix}#{module}", count, suffix]
     )
   end
+
+  defp is_elixir_module(module) when is_atom(module), do: function_exported?(module, :__info__, 1)
  
   defp parsed_module_name(module) do
     module_name = Atom.to_string(module)
-    is_elixir_module = module_name 
-    |> String.at(0) 
-    |> Kernel.=~(~r/^\p{Lu}$/u)
 
-    if is_elixir_module do
+    if is_elixir_module(module) do
       "Elixir." <> rem = module_name
       rem
     else
