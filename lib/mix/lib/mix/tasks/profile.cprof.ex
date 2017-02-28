@@ -156,6 +156,7 @@ defmodule Mix.Tasks.Profile.Cprof do
     {num_matched_functions, analysis_result}
   end
 
+  defp string_to_existing_module_atom(":'Elixir'." <> module), do: String.to_existing_atom(module)
   defp string_to_existing_module_atom(":" <> module), do: String.to_existing_atom(module)
   defp string_to_existing_module_atom(module), do: Module.concat([module])
 
